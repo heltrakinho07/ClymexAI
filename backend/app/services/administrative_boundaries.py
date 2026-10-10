@@ -32,7 +32,7 @@ def _normalize(value: object) -> str:
 
 def _district_id(name: str, province: str, code: str) -> str:
     normalized = _normalize(name)
-    if normalized in FOCUS_DISTRICTS["maputo_city"] and "maputo" in _normalize(province):
+    if (normalized in FOCUS_DISTRICTS["maputo_city"] or normalized == "maputo") and _normalize(province) in ("maputo cidade", "cidade de maputo"):
         return "maputo_city"
     for key, aliases in FOCUS_DISTRICTS.items():
         if normalized in aliases:
