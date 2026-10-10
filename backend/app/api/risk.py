@@ -12,20 +12,21 @@ router = APIRouter(prefix="/risk", tags=["Climate Risk Engine"])
 
 
 @router.get("", response_model=List[RiskAssessment])
-async def get_all_risks(mode: Optional[str] = Query("live")):
+async def get_all_risks(
+    mode: str = Query("demo", pattern="^(live|demo)$"),
+    hazard: HazardType = Query(HazardType.OVERALL_CLIMATE),
+):
+    """Risk assessments by demonstrator district and selected hazard.
+
+    Live mode includes model-derived indicators, therefore its provenance is ESTIMATED.
     """
-    Returns latest multi-hazard risk assessments for all demonstrator districts in Incomati basin.
-    When mode='live', executes real geoprocessing across all districts concurrently.
-    """
+    districts = ["manhica", "marracuene", "matola", "boane", "magude", "moamba", "maputo_city", "chokwe"]
     if mode == "live":
         import asyncio
-        districts = ["manhica", "marracuene", "matola", "boane", "magude", "moamba", "maputo_city", "chokwe"]
-        return await asyncio.gather(*[
-            ClimateRiskEngine.assess_district_live(d, HazardType.OVERALL_CLIMATE)
-            for d in districts
-        ])
-    return ClimateRiskEngine.get_all_districts_overview()
-
+        return await asyncio.gather(*(
+            ClimateRiskEngine.assess_district_live(d, hazard) for d in districts
+        ))
+    return [ClimateRiskEngine.assess_district(d, hazard) for d in districts]
 
 
 @router.get("/{area_id}", response_model=RiskAssessment)
