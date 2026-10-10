@@ -390,7 +390,9 @@ class ClimateRiskEngine:
             exposure=exposure_breakdown,
             indicators=indicators,
             timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            data_mode=DataStatus.OBSERVED
+            # Open-Meteo meteorology is mixed with heuristic NDVI, water extent,
+            # terrain and exposure estimates. Never claim the full score is observed.
+            data_mode=DataStatus.ESTIMATED
         )
 
     @classmethod
