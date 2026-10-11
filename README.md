@@ -82,6 +82,10 @@ O pacote também está listado em `backend/requirements.txt` e é instalado pela
 
 O mapa diferencia as camadas administrativas reais da hidrografia e das manchas de cheia **demonstrativas**. A opção meteorológica externa gera uma avaliação **ESTIMATED**, porque continua a combinar observações/modelos meteorológicos com parâmetros inferidos. As camadas de índices GEE só são desenhadas como resultados calculados quando o serviço entrega uma imagem efectivamente processada.
 
+### Integração real com Google Earth Engine
+
+Foi implementado processamento server-side de índices Sentinel-2, mudanças Sentinel-1 SAR, DEM Copernicus e precipitação CHIRPS, com recorte pelos polígonos GeoMoz, metadados de aquisição e erros explícitos quando indisponível. O algoritmo SAR é **exploratório**, e o motor de risco ainda não integra automaticamente estas métricas. Consulte [docs/GEE_PIPELINE.md](docs/GEE_PIPELINE.md) para a configuração, endpoints, limitações e validação científica pendente.
+
 ### 929 Challenge 2026
 
 A estratégia de produto, discurso comercial, guião de demonstração e critérios de validação para o concurso encontram-se em [docs/929_CHALLENGE_2026.md](docs/929_CHALLENGE_2026.md). O estado actual é de **protótipo demonstrativo**, não serviço oficial de aviso antecipado.
