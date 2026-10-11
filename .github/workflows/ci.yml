@@ -49,6 +49,7 @@ jobs:
           print("GeoMoz districts:", len(districts["features"]))
           print("GeoMoz pilot IDs:", [f["id"] for f in pilots["features"]])
           print("Unmatched pilot IDs:", pilots.get("missing_focus_areas"))
+          print("Possible Matola matches:", [(x["id"], x["properties"]["name"], x["properties"]["province"]) for x in districts["features"] if "matol" in x["properties"]["name"].lower() or "matol" in x["id"].lower()])
           PY
 
   frontend:
