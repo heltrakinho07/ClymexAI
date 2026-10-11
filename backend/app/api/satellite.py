@@ -74,7 +74,13 @@ def get_chirps_precipitation_series(
     """Historical CHIRPS actual daily observations, no invented climatological baseline."""
     ee = EarthEngineProcessor.ee()
     region = EarthEngineProcessor.region(district_id)
-    end = dt.date.fromisoformat(end_date) if end_date else dt.datetime.now(dt.timezone.utc).date() + dt.timedelta(days=1)
+    if end_date:
+        try:
+            end = dt.date.fromisoformat(end_date)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="end_date deve usar YYYY-MM-DD.") from exc
+    else:
+        end = dt.datetime.now(dt.timezone.utc).date() + dt.timedelta(days=1)
     if end_date is None:
         # Account for the publication delay, returning the most recently available scene
         # and its real acquisition date rather than inventing values for missing days.
