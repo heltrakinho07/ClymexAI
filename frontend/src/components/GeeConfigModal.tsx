@@ -16,8 +16,6 @@ export const GeeConfigModal: React.FC<GeeConfigModalProps> = ({
   onProjectChange,
 }) => {
   const [projectId, setProjectId] = useState<string>("geoprocessamento-426809");
-  const [serviceAccountKey, setServiceAccountKey] = useState<string>("");
-  const [showSaKeyInput, setShowSaKeyInput] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [geeInfo, setGeeInfo] = useState<any>(null);
@@ -47,13 +45,13 @@ export const GeeConfigModal: React.FC<GeeConfigModalProps> = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           project_id: projectId.trim() || "geoprocessamento-426809",
-          service_account_key: serviceAccountKey.trim() || undefined,
         }),
       });
 
+      if (!res.ok) throw new Error(`HTTP ${res.status}: configuração rejeitada`);
       const data = await res.json();
       setGeeInfo(data);
-      setStatusMessage("✅ Conexão com Google Earth Engine validada com sucesso!");
+      setStatusMessage(data.connected ? "✅ Earth Engine autenticado." : "⚠️ Project ID guardado; Earth Engine ainda não autenticado no servidor.");
       if (onProjectChange) {
         onProjectChange(projectId.trim() || "geoprocessamento-426809");
       }
@@ -97,13 +95,13 @@ export const GeeConfigModal: React.FC<GeeConfigModalProps> = ({
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
             <div className="text-xs space-y-1">
               <div className="font-bold text-emerald-900 flex items-center space-x-2">
-                <span>Motor GEE Operacional no Backend</span>
+                <span>{geeInfo?.connected ? "Earth Engine autenticado" : "Earth Engine ainda não autenticado"}</span>
                 <span className="bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full text-[10px] font-mono">
-                  ATIVO
+                  {geeInfo?.connected ? "ATIVO" : "POR CONFIGURAR"}
                 </span>
               </div>
               <p className="text-emerald-800 text-[11px] leading-relaxed">
-                Processamento multiespectral Sentinel-2, radar Sentinel-1 SAR e topografia Copernicus GLO-30 configurados para a Bacia do Incomati e Moçambique.
+                As camadas só serão disponibilizadas como índices quando forem realmente processadas no backend.
               </p>
             </div>
           </div>
@@ -134,31 +132,10 @@ export const GeeConfigModal: React.FC<GeeConfigModalProps> = ({
             </p>
           </div>
 
-          {/* Service Account Toggle */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowSaKeyInput(!showSaKeyInput)}
-              className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center space-x-1"
-            >
-              <span>{showSaKeyInput ? "− Ocultar Chave de Conta de Serviço (Opcional)" : "+ Inserir Chave de Conta de Serviço JSON (Opcional)"}</span>
-            </button>
-
-            {showSaKeyInput && (
-              <div className="mt-2 space-y-1.5">
-                <textarea
-                  value={serviceAccountKey}
-                  onChange={(e) => setServiceAccountKey(e.target.value)}
-                  placeholder='{"type": "service_account", "project_id": "...", ...}'
-                  rows={4}
-                  className="w-full px-3 py-2 text-xs font-mono rounded-lg border border-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-stone-50"
-                />
-                <p className="text-[10px] text-stone-400">
-                  Insira o JSON da conta de serviço caso queira autenticação dedicada para servidores de alta demanda.
-                </p>
-              </div>
-            )}
-          </div>
+          <p className="text-xs text-stone-600 bg-stone-50 border border-stone-200 rounded-lg p-3">
+            As credenciais de contas de serviço GEE devem ser configuradas como segredo privado no servidor.
+            Nunca cole chaves JSON no navegador.
+          </p>
 
           {/* Connected Satellites Grid */}
           <div className="space-y-2">
