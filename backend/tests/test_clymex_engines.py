@@ -64,7 +64,21 @@ def test_exposure_engine_polygon():
 
 
 @pytest.mark.asyncio
-async def test_api_endpoints():
+async def test_api_endpoints(monkeypatch):
+    # The API contract test must not download external GeoMoz datasets.
+    # Real GeoMoz data is validated separately in integration deployments.
+    monkeypatch.setattr(
+        "app.api.areas.districts_geojson",
+        lambda **kwargs: {
+            "type": "FeatureCollection",
+            "source": "geomoz",
+            "features": [
+                {"type": "Feature", "properties": {"id": key, "name": key}, "geometry": None}
+                for key in ("manhica", "marracuene", "matola", "boane", "magude", "chokwe")
+            ],
+        },
+    )
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # 1. Healthcheck
