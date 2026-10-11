@@ -247,7 +247,7 @@ export default function Home() {
               className="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-xs transition-all"
             >
               <FileText className="w-4 h-4" />
-              <span>Gerar Boletim Oficial (SitRep)</span>
+              <span>Gerar SitRep (DEMO)</span>
             </button>
           </div>
         </div>
@@ -333,7 +333,7 @@ export default function Home() {
               onClick={() => setIsSitRepOpen(true)}
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-lg text-xs shadow-xs"
             >
-              Abrir Boletim Oficial de {currentAssessment?.area_name || "Manhiça"}
+              Abrir SitRep DEMO de {currentAssessment?.area_name || "Manhiça"}
             </button>
           </div>
         ) : (
