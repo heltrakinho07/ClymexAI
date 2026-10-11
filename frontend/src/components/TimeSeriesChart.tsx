@@ -100,8 +100,8 @@ export const TimeSeriesChart: React.FC<Props> = ({ selectedDistrict }) => {
                 <XAxis dataKey="date" fontSize={10} tickFormatter={(value: string) => value.slice(5)} />
                 <YAxis fontSize={10} unit="mm" />
                 <Tooltip
-                  formatter={(value: number) => [value + " mm", "CHIRPS diário"]}
-                  labelFormatter={(label: string) => "Data: " + label}
+                  formatter={(value: any) => [value + " mm", "CHIRPS diário"]}
+                  labelFormatter={(label: any) => "Data: " + label}
                 />
                 <Line type="monotone" dataKey="actual" stroke="#0284c7" strokeWidth={2} dot={false} connectNulls={false} />
               </LineChart>
