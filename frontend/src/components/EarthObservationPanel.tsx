@@ -42,7 +42,7 @@ export const EarthObservationPanel: React.FC<EarthObservationPanelProps> = ({
               Observação da Terra — Métricas de Satélite (GEE)
             </h3>
             <p className="text-[11px] text-stone-500">
-              Processamento espectral multiespectral e de radar para {selectedDistrict.toUpperCase()}
+              Indicadores ilustrativos de 2024 — não são medições em tempo real — {selectedDistrict.toUpperCase()}
             </p>
           </div>
         </div>
@@ -69,7 +69,7 @@ export const EarthObservationPanel: React.FC<EarthObservationPanelProps> = ({
           <div className="flex items-center justify-between text-stone-500 text-[11px]">
             <span className="flex items-center space-x-1">
               <Sprout className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Sentinel-2 NDVI</span>
+              <span>NDVI (DEMO)</span>
             </span>
             <span className="text-[10px] text-stone-400">10m</span>
           </div>
@@ -86,7 +86,7 @@ export const EarthObservationPanel: React.FC<EarthObservationPanelProps> = ({
           <div className="flex items-center justify-between text-stone-500 text-[11px]">
             <span className="flex items-center space-x-1">
               <Waves className="w-3.5 h-3.5 text-sky-600" />
-              <span>SAR Mancha Cheia</span>
+              <span>Mancha SAR (DEMO)</span>
             </span>
             <span className="text-[10px] text-stone-400">Radar C</span>
           </div>
@@ -140,11 +140,11 @@ export const EarthObservationPanel: React.FC<EarthObservationPanelProps> = ({
       <div className="pt-2 border-t border-stone-100 flex flex-wrap items-center justify-between text-[11px] text-stone-500 gap-2">
         <div className="flex items-center space-x-1.5">
           <Calendar className="w-3.5 h-3.5 text-stone-400" />
-          <span>Última Órbita: <strong>{metrics?.acquisition_date ?? "2024-09-18"}</strong></span>
+          <span>Data de referência ilustrativa: <strong>{metrics?.acquisition_date ?? "2024-09-18"}</strong></span>
         </div>
         <div className="flex items-center space-x-1.5 text-emerald-700 font-medium">
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Projeto GEE: <code>geoprocessamento-426809</code></span>
+          <span>Modo: <strong>{metrics?.data_mode || "DEMO"}</strong></span>
         </div>
       </div>
     </div>
