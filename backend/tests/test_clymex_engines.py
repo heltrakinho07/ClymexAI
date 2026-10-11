@@ -79,6 +79,32 @@ async def test_api_endpoints(monkeypatch):
         },
     )
 
+    # Isolate GEE network calls: validate the FastAPI response contract only.
+    monkeypatch.setattr(
+        "app.api.satellite.GoogleEarthEngineBridge.get_status",
+        lambda: {
+            "connected": False,
+            "project_id": "geoprocessamento-426809",
+            "indices": ["ndvi", "ndwi", "precipitation"],
+        },
+    )
+    monkeypatch.setattr(
+        "app.api.satellite.GoogleEarthEngineBridge.compute_index_tile",
+        lambda **kwargs: {
+            "index": kwargs["index"],
+            "tile_url": "https://example.invalid/tile/{z}/{x}/{y}",
+            "attribution": "Mocked test tile — not Earth Engine",
+            "is_processed_layer": False,
+        },
+    )
+    monkeypatch.setattr(
+        "app.api.satellite.GoogleEarthEngineBridge.get_district_satellite_metrics",
+        lambda district_id: {
+            "ndvi_mean": None,
+            "sar_flood_inundated_sqkm": None,
+            "data_mode": "ESTIMATED",
+        },
+    )
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # 1. Healthcheck
@@ -107,7 +133,7 @@ async def test_api_endpoints(monkeypatch):
         geojson = res.json()
         assert geojson["type"] == "FeatureCollection"
         assert geojson["source"] == "geomoz"
-    assert len(geojson["features"]) >= 6
+        assert len(geojson["features"]) >= 6
 
         # 5. Alerts
         res = await client.get("/api/v1/alerts")
