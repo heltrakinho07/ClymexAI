@@ -111,7 +111,7 @@ class EarthEngineProcessor:
             "message": "Earth Engine autenticado e verificado." if connected else "Credenciais GEE ou acesso ao projecto indisponíveis.",
             "error_type": cls._error,
             "indices": list(DATASETS),
-            "index_catalog": INDEX_REGISTRY,
+            "index_catalog": {name: INDEX_REGISTRY[name] for name in DATASETS},
         }
 
     @classmethod
