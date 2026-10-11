@@ -40,21 +40,11 @@ export const GeeConfigModal: React.FC<GeeConfigModalProps> = ({
     setStatusMessage(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/satellite/gee/configure`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          project_id: projectId.trim() || "geoprocessamento-426809",
-        }),
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}: configuração rejeitada`);
+      const res = await fetch(`${API_BASE_URL}/satellite/gee/status`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}: verificação indisponível`);
       const data = await res.json();
       setGeeInfo(data);
-      setStatusMessage(data.connected ? "✅ Earth Engine autenticado." : "⚠️ Project ID guardado; Earth Engine ainda não autenticado no servidor.");
-      if (onProjectChange) {
-        onProjectChange(projectId.trim() || "geoprocessamento-426809");
-      }
+      setStatusMessage(data.connected ? "✅ Earth Engine autenticado." : "⚠️ Earth Engine não autenticado; configure a identidade do servidor.");
     } catch (err: any) {
       setStatusMessage(`❌ Erro ao validar: ${err.message}`);
     } finally {
@@ -115,20 +105,14 @@ export const GeeConfigModal: React.FC<GeeConfigModalProps> = ({
               <input
                 type="text"
                 value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
+                readOnly
                 placeholder="ex: geoprocessamento-426809"
                 className="flex-1 px-3 py-2 text-xs font-mono rounded-lg border border-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-stone-50"
               />
-              <button
-                type="button"
-                onClick={() => setProjectId("geoprocessamento-426809")}
-                className="px-3 py-2 text-[11px] font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors"
-              >
-                Padrão
-              </button>
+
             </div>
             <p className="text-[11px] text-stone-500">
-              Projeto ativo associado à cota do Google Earth Engine para Moçambique.
+              Project ID indicado pelo backend. A autenticação e alterações devem ser feitas no servidor.
             </p>
           </div>
 
@@ -206,7 +190,7 @@ export const GeeConfigModal: React.FC<GeeConfigModalProps> = ({
               ) : (
                 <>
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Salvar & Validar Conexão</span>
+                  <span>Verificar ligação</span>
                 </>
               )}
             </button>
