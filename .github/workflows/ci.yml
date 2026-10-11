@@ -31,6 +31,25 @@ jobs:
           PYTHONPATH: backend
           GEE_PROJECT_ID: geoprocessamento-426809
         run: python -m pytest backend/tests -q
+      - name: GeoMoz real dataset smoke test (remote, non-blocking)
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          PYTHONPATH: backend
+        run: |
+          python - <<'PY'
+          from app.services.administrative_boundaries import provinces_geojson, districts_geojson
+          provinces = provinces_geojson()
+          districts = districts_geojson()
+          pilots = districts_geojson(focus_only=True)
+          assert len(provinces["features"]) >= 10
+          assert len(districts["features"]) >= 100
+          assert all(f["geometry"] for f in pilots["features"])
+          print("GeoMoz provinces:", len(provinces["features"]))
+          print("GeoMoz districts:", len(districts["features"]))
+          print("GeoMoz pilot IDs:", [f["id"] for f in pilots["features"]])
+          print("Unmatched pilot IDs:", pilots.get("missing_focus_areas"))
+          PY
 
   frontend:
     name: Next.js TypeScript build
