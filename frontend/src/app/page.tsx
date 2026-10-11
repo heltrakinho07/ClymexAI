@@ -200,6 +200,17 @@ export default function Home() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {(!districtsGeoJson || !provincesGeoJson) && (
+          <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+            Limites administrativos GeoMoz indisponíveis. Verifique a ligação da API, a instalação do pacote e o acesso inicial aos dados. Não são utilizados polígonos artificiais como alternativa.
+          </div>
+        )}
+        {districtsGeoJson?.missing_focus_areas?.length > 0 && (
+          <div role="status" className="rounded-xl border border-stone-300 bg-white p-3 text-xs text-stone-700">
+            Distritos-piloto sem geometria correspondente no GeoMoz: {districtsGeoJson.missing_focus_areas.join(", ")}. Não serão desenhadas fronteiras inventadas.
+          </div>
+        )}
+
         {/* District & Context Filter Header */}
         <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
