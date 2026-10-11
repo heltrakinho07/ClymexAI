@@ -45,6 +45,7 @@ jobs:
           assert len(provinces["features"]) >= 10
           assert len(districts["features"]) >= 100
           assert all(f["geometry"] for f in pilots["features"])
+          assert not pilots["missing_focus_areas"], pilots["missing_focus_areas"]
           print("GeoMoz provinces:", len(provinces["features"]))
           print("GeoMoz districts:", len(districts["features"]))
           print("GeoMoz pilot IDs:", [f["id"] for f in pilots["features"]])
