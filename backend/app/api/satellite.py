@@ -47,11 +47,10 @@ def configure_gee(req: GEEConfigureRequest):
     """
     Updates Google Earth Engine project ID or Service Account key dynamically.
     """
-    if req.service_account_key:
-        raise HTTPException(status_code=400, detail="Nunca envie chaves de conta de serviço pelo navegador.")
-    if settings.ENV != "development":
-        raise HTTPException(status_code=403, detail="A configuração GEE está desactivada fora do desenvolvimento.")
-    return GoogleEarthEngineBridge.configure(project_id=req.project_id)
+    raise HTTPException(
+        status_code=403,
+        detail="A configuração GEE deve ser realizada exclusivamente através das variáveis e credenciais privadas do servidor.",
+    )
 
 
 @router.post("/gee/tile", response_model=Dict[str, Any])
