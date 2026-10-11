@@ -29,14 +29,15 @@ class ReportGenerator:
         now_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
         exec_summary = (
-            f"O distrito de {assessment.area_name} ({assessment.province}, Moçambique) apresenta um "
-            f"Índice de Risco Climático Composto de {assessment.risk_score:.0f}/100, classificado no nível operacional "
-            f"'{assessment.risk_level.value}'. O perigo dominante atual é de natureza hidrometeorológica (Cheia Aluvial), "
-            f"impulsionado por uma precipitação acumulada em 7 dias de {assessment.indicators.rainfall_7d_mm:.1f} mm "
-            f"(+{assessment.indicators.rainfall_anomaly_pct:.0f}% acima da média histórica climatológica) "
-            f"e transbordo lateral de calha confirmado por radar Sentinel-1 SAR (+{assessment.indicators.surface_water_change_pct:.0f}% de expansão de lâmina d'água). "
-            f"Estima-se que {assessment.exposure.population_exposed:,} habitantes e {assessment.exposure.buildings_count:,} "
-            f"edifícios identificados pela base Google Open Buildings estejam na zona direta de impacto fluvial."
+            f"SIMULAÇÃO CLYMEX AI: o distrito de {assessment.area_name} ({assessment.province}) "
+            f"apresenta um índice de risco ilustrativo de {assessment.risk_score:.0f}/100 "
+            f"({assessment.risk_level.value}). Estes indicadores provêm de um cenário demonstrativo "
+            f"e não representam condições hidrometeorológicas actualmente observadas, "
+            f"confirmação de inundação por Sentinel-1 nem alertas governamentais. "
+            f"Exposição indicativa do cenário: {assessment.exposure.population_exposed:,} habitantes "
+            f"e {assessment.exposure.buildings_count:,} edifícios estimados. "
+            f"A avaliação real requer processamento satelital validado, dados hidrométricos "
+            f"e confirmação das fontes e da qualidade dos dados."
         )
 
         hazard_matrix = {
@@ -44,13 +45,13 @@ class ReportGenerator:
                 "hazard_score": flood_assessment.hazard_score,
                 "risk_score": flood_assessment.risk_score,
                 "level": flood_assessment.risk_level.value,
-                "status": "CRÍTICO" if flood_assessment.risk_score >= 70 else "ALTO"
+                "status": flood_assessment.risk_level.value
             },
             "drought": {
                 "hazard_score": drought_assessment.hazard_score,
                 "risk_score": drought_assessment.risk_score,
                 "level": drought_assessment.risk_level.value,
-                "status": "MODERADO"
+                "status": drought_assessment.risk_level.value
             },
             "water_stress": {
                 "hazard_score": stress_assessment.hazard_score,
@@ -66,25 +67,22 @@ class ReportGenerator:
         ]
 
         recommendations = [
-            f"Ativação Imediata do Centro de Operações de Emergência Distrital (COED) em {assessment.area_name}.",
-            "Inspeção técnica e salvaguarda do tabuleiro e encontros da ponte da Estrada Nacional EN1 sobre o Rio Incomati.",
-            "Coordenação com a Administração Regional de Águas do Sul (ARA-Sul) para escalonamento de vazão da Barragem de Corumana.",
-            f"Pré-posicionamento de embarcações de resgate e insumos de purificação de água nas comunidades ribeirinhas vulneráveis ({assessment.exposure.population_exposed:,} pessoas estimadas).",
-            "Monitoramento contínuo em tempo real via imagens de satélite Sentinel-1 SAR e estações de nível telemétricas."
+            "Cenário de treino: verificar os dados mais recentes nas autoridades meteorológicas e hidrológicas oficiais.",
+            "Se o perigo for confirmado, avaliar exposição por bairro, estradas, escolas e postos de saúde com dados espaciais validados.",
+            "Submeter as recomendações a revisão por profissionais e responsáveis de protecção civil antes de qualquer intervenção.",
+            "Não desencadear evacuações ou operações de emergência exclusivamente com base nesta simulação.",
         ]
 
         disclaimer = (
-            "Aviso Legal & Transparência Científica: O presente Boletim de Inteligência Climática é emitido pela plataforma "
-            "CLYMEX AI para suporte à tomada de decisão preventiva, modelagem de risco e planejamento de resiliência. "
-            "Os valores apresentados combinam sensoriamento remoto orbital (ESA Copernicus Sentinel-1/2), reanálises ECMWF ERA5-Land, "
-            "CHIRPS v2.0 e cadastros Google Open Buildings. As diretrizes oficiais de evacuação cabem com exclusividade ao Instituto Nacional "
-            "de Gestão e Redução do Risco de Desastres (INGD) de Moçambique."
+            "DOCUMENTO DEMONSTRATIVO — NÃO OFICIAL. Resultados sintéticos e estimativas "
+            "sem validação operacional; não substituir alertas do INAM, DNGRH/ARA-Sul, "
+            "INGD ou autoridades competentes. Não representa uma observação confirmada de satélite."
         )
 
         return SituationReport(
             report_id=f"SITREP-{assessment.area_id.upper()}-{datetime.date.today().strftime('%Y%m%d')}",
             generated_at=now_str,
-            title=f"Boletim Especial de Risco Climático & Cheias — Bacia do Incomati ({assessment.area_name})",
+            title=f"SitRep DEMO — Cenário de Risco Climático ({assessment.area_name}, {assessment.basin})",
             country=assessment.country,
             region=f"{assessment.province} / {assessment.basin}",
             executive_summary=exec_summary,
