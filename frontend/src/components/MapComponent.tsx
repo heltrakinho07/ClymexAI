@@ -40,6 +40,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
 
   const [basemap, setBasemap] = useState<"satellite" | "light">("satellite");
   const [activeGeeIndex, setActiveGeeIndex] = useState<string>("none");
+  const [geeNotice, setGeeNotice] = useState<string>("");
   const [isDrawingAoi, setIsDrawingAoi] = useState<boolean>(false);
   const [aoiPoints, setAoiPoints] = useState<[number, number][]>([]);
   const [isCalculatingAoi, setIsCalculatingAoi] = useState<boolean>(false);
@@ -180,6 +181,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       geeTileRef.current = null;
     }
 
+    setGeeNotice("");
     if (activeGeeIndex !== "none") {
       // Fetch GEE Tile URL from backend
       fetch(`${API_BASE_URL}/satellite/gee/tile`, {
@@ -192,6 +194,10 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       })
         .then((res) => res.json())
         .then((data) => {
+          if (data && !data.is_processed_layer) {
+            setGeeNotice("Índice indisponível: GEE ainda não processou esta camada. Não será mostrado um mapa-base com legenda espectral.");
+            return;
+          }
           if (data && data.tile_url && mapInstanceRef.current) {
             geeTileRef.current = L.tileLayer(data.tile_url, {
               opacity: 0.75,
@@ -572,6 +578,12 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             <option value="precipitation">🌧️ Radar & CHIRPS (Chuva)</option>
           </select>
         </div>
+
+        {geeNotice && (
+          <div role="status" className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded p-2">
+            {geeNotice}
+          </div>
+        )}
 
         {/* AOI Drawing Tool Trigger */}
         <div className="border-t border-stone-200 pt-2">
