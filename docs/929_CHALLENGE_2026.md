@@ -59,8 +59,10 @@ The China/GBA pathway is **a proposed commercial partnership**, not an existing 
 - [x] Working backend/frontend structure in source repository.
 - [x] Geographic service supports GeoMoz province/district boundary retrieval (requires cached/online GeoMoz datasets).
 - [x] Pilot risk engines and visual dashboard exist.
-- [ ] Full GeoMoz live integration validated in deployed runtime.
-- [ ] Real Sentinel-1 flood classification validated against mapped flood observations.
+- [ ] Full GeoMoz live integration validated in deployed runtime (CI contract tests implemented; network smoke test added).
+- [x] Sentinel-1 SAR candidate-flood processing coded with same-pass before/after imagery (NOT validated).
+- [ ] Validate Sentinel-1 candidate classification against mapped flood observations.
+- [x] NDVI/NDWI, Copernicus DEM and CHIRPS Earth Engine calculation paths implemented (runtime validation pending).
 - [ ] Drought algorithms benchmarked against SPI/VCI historical baselines.
 - [ ] Scores backtested, calibrated and accompanied by uncertainty estimates.
 - [ ] Sensor telemetry authenticated and persistently stored.
