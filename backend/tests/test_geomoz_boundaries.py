@@ -8,6 +8,7 @@ from app.services import administrative_boundaries as geo
 def test_district_slug_accents_and_maputo_city():
     assert geo._district_id("Chókwè", "Gaza", "40") == "chokwe"
     assert geo._district_id("Manhiça", "Maputo Província", "41") == "manhica"
+    assert geo._district_id("Cidade da Matola", "Maputo Provincia", "01") == "matola"
     assert geo._district_id("Maputo", "Maputo Cidade", "01") == "maputo_city"
     assert geo._district_id("Maputo", "Maputo Província", "01") != "maputo_city"
 
