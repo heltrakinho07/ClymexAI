@@ -192,7 +192,11 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           district_id: selectedDistrict,
         }),
       })
-        .then((res) => res.json())
+        .then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+          return data;
+        })
         .then((data) => {
           if (data && !data.is_processed_layer) {
             setGeeNotice("Índice indisponível: GEE ainda não processou esta camada. Não será mostrado um mapa-base com legenda espectral.");
@@ -206,7 +210,10 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             }).addTo(mapInstanceRef.current);
           }
         })
-        .catch((err) => console.warn("GEE Tile fetch notice:", err));
+        .catch((err) => {
+          setGeeNotice("Camada GEE indisponível: " + (err?.message || "erro no processamento"));
+          console.warn("GEE Tile fetch notice:", err);
+        });
     }
   }, [activeGeeIndex, selectedDistrict]);
 
