@@ -10,6 +10,7 @@ from typing import Dict, Any, List, Optional
 from shapely.geometry import Point, Polygon, LineString
 from app.data.geo_boundaries import INCOMATI_DISTRICTS_GEOJSON, INCOMATI_RIVERS_GEOJSON
 from app.models.domain import EnvironmentalIndicators, DataStatus
+from fastapi import HTTPException
 
 
 class LiveGeoprocessingService:
@@ -159,23 +160,9 @@ class LiveGeoprocessingService:
                 surface_water_change_pct=round(water_change_pct, 1)
             )
         else:
-            # High-fidelity fallback based on physical coordinates
-            return EnvironmentalIndicators(
-                rainfall_24h_mm=45.0,
-                rainfall_7d_mm=98.0,
-                rainfall_30d_mm=140.0,
-                rainfall_anomaly_pct=65.0,
-                ndvi_current=0.60,
-                ndvi_baseline=0.55,
-                ndvi_anomaly_pct=9.1,
-                soil_moisture_pct=32.0,
-                soil_moisture_anomaly_pct=33.3,
-                temperature_mean_c=25.0,
-                temperature_anomaly_c=0.5,
-                elevation_mean_m=coords["elev"],
-                slope_mean_deg=coords["slope"],
-                topographic_wetness_index=twi,
-                distance_to_river_km=dist_to_river,
-                surface_water_extent_sqkm=28.0,
-                surface_water_change_pct=35.0
+            # Never publish invented sensor/meteorological values when the external
+            # service fails. The user may explicitly select DEMO mode instead.
+            raise HTTPException(
+                status_code=503,
+                detail="Meteorologia externa indisponível: avaliação live não gerada. Utilize o modo DEMO identificado.",
             )
