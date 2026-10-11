@@ -276,7 +276,8 @@ class EarthEngineProcessor:
             ).get("precipitation")
             return ee.Feature(None, {"date": img.date().format("YYYY-MM-dd"), "actual": value})
         try:
-            result = collection.map(daily).getInfo()["features"]
+            features = ee.FeatureCollection(collection.toList(collection.size()).map(lambda raw: daily(ee.Image(raw))))
+            result = features.getInfo()["features"]
             points = []
             for feature in result:
                 props = feature["properties"]
