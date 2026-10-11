@@ -15,7 +15,7 @@ from fastapi import HTTPException
 FOCUS_DISTRICTS = {
     "manhica": ("manhica",),
     "marracuene": ("marracuene",),
-    "matola": ("matola",),
+    "matola": ("matola", "cidade da matola"),
     "boane": ("boane",),
     "magude": ("magude",),
     "moamba": ("moamba",),
