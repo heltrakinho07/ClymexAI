@@ -110,7 +110,7 @@ class EarthEngineProcessor:
             "status": "AUTHENTICATED" if connected else "UNCONFIGURED",
             "message": "Earth Engine autenticado e verificado." if connected else "Credenciais GEE ou acesso ao projecto indisponíveis.",
             "error_type": cls._error,
-            "indices": list(INDEX_REGISTRY),
+            "indices": list(DATASETS),
             "index_catalog": INDEX_REGISTRY,
         }
 
