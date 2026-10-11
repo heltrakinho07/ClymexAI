@@ -54,10 +54,10 @@ INDEX_REGISTRY: Dict[str, Dict[str, Any]] = {
     "flood_sar": {
         "group": "radar",
         "needs": ["s1"],
-        "name": "Mancha de Cheia Radar — Sentinel-1 C-SAR",
-        "formula": "Diferença radiométrica retroespalhamento VV/VH (dB)",
-        "bands": "Sentinel-1 SAR C-band (VV + VH)",
-        "description": "Detecção de inundação imune a cobertura de nuvens ou chuva extrema durante ciclones e tempestades tropicais.",
+        "name": "Candidatos a Inundação — Sentinel-1 (não validado)",
+        "formula": "ΔVV > 3 dB; VV posterior < -15 dB; declive < 5°; máscara de água persistente",
+        "bands": "Sentinel-1 SAR GRD C-band (VV)",
+        "description": "Mudança preliminar de retroespalhamento SAR. Requer validação com imagens de referência ou observações de campo; falsos positivos são possíveis.",
         "vis": {
             "min": -25.0,
             "max": 0.0,
