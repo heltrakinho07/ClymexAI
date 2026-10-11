@@ -3,13 +3,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { API_BASE_URL } from "../lib/api";
+import { API_BASE_URL, RiskAssessment } from "../lib/api";
 
 interface MapComponentProps {
   selectedDistrict: string;
   onSelectDistrict: (districtId: string) => void;
   activeHazardLayer: "OVERALL_CLIMATE" | "FLOOD" | "DROUGHT" | "WATER_STRESS";
   districtsGeoJson: any;
+  provincesGeoJson: any;
+  riskAssessments: RiskAssessment[];
   riversGeoJson: any;
   floodExtentGeoJson: any;
   infrastructureGeoJson: any;
@@ -23,6 +25,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   onSelectDistrict,
   activeHazardLayer,
   districtsGeoJson,
+  provincesGeoJson,
+  riskAssessments,
   riversGeoJson,
   floodExtentGeoJson,
   infrastructureGeoJson,
@@ -36,11 +40,13 @@ export const MapComponent: React.FC<MapComponentProps> = ({
 
   const [basemap, setBasemap] = useState<"satellite" | "light">("satellite");
   const [activeGeeIndex, setActiveGeeIndex] = useState<string>("none");
+  const [geeNotice, setGeeNotice] = useState<string>("");
   const [isDrawingAoi, setIsDrawingAoi] = useState<boolean>(false);
   const [aoiPoints, setAoiPoints] = useState<[number, number][]>([]);
   const [isCalculatingAoi, setIsCalculatingAoi] = useState<boolean>(false);
 
   const [layersVisible, setLayersVisible] = useState({
+    provinces: true,
     districts: true,
     rivers: true,
     floodExtent: true,
@@ -54,30 +60,15 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   const geeTileRef = useRef<L.TileLayer | null>(null);
   const aoiLayerGroupRef = useRef<L.LayerGroup | null>(null);
 
-  // Get color for district based on active hazard layer and properties
+  // Color is driven by current hazard scores; missing assessments are neutral gray.
   const getDistrictColor = (feature: any) => {
-    const props = feature.properties || {};
-    const id = props.id || "";
-    const isSelected = id === selectedDistrict;
-
-    if (activeHazardLayer === "FLOOD") {
-      if (id === "manhica" || id === "chokwe") return isSelected ? "#991b1b" : "#dc2626";
-      if (id === "marracuene") return isSelected ? "#ea580c" : "#f97316";
-      if (id === "matola" || id === "maputo_city") return "#f59e0b";
-      return "#10b981";
-    } else if (activeHazardLayer === "DROUGHT") {
-      if (id === "magude") return isSelected ? "#991b1b" : "#dc2626";
-      if (id === "moamba") return isSelected ? "#ea580c" : "#f59e0b";
-      return "#10b981";
-    } else if (activeHazardLayer === "WATER_STRESS") {
-      if (id === "boane" || id === "matola") return isSelected ? "#ea580c" : "#f59e0b";
-      return "#10b981";
-    } else {
-      if (id === "manhica" || id === "chokwe" || id === "magude") return isSelected ? "#991b1b" : "#dc2626";
-      if (id === "marracuene" || id === "moamba") return isSelected ? "#ea580c" : "#f97316";
-      if (id === "matola" || id === "boane" || id === "maputo_city") return "#f59e0b";
-      return "#10b981";
-    }
+    const result = riskAssessments.find((risk) => risk.area_id === feature?.properties?.id);
+    if (!result) return "#94a3b8";
+    if (result.risk_score <= 20) return "#059669";
+    if (result.risk_score <= 40) return "#eab308";
+    if (result.risk_score <= 60) return "#f97316";
+    if (result.risk_score <= 80) return "#dc2626";
+    return "#7f1d1d";
   };
 
   // 1. Initialize Map
@@ -114,6 +105,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
 
       // Layer groups
       layerGroupsRef.current = {
+        provinces: L.layerGroup().addTo(map),
         districts: L.layerGroup().addTo(map),
         rivers: L.layerGroup().addTo(map),
         floodExtent: L.layerGroup().addTo(map),
@@ -189,6 +181,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       geeTileRef.current = null;
     }
 
+    setGeeNotice("");
     if (activeGeeIndex !== "none") {
       // Fetch GEE Tile URL from backend
       fetch(`${API_BASE_URL}/satellite/gee/tile`, {
@@ -199,8 +192,16 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           district_id: selectedDistrict,
         }),
       })
-        .then((res) => res.json())
+        .then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+          return data;
+        })
         .then((data) => {
+          if (data && !data.is_processed_layer) {
+            setGeeNotice("Índice indisponível: GEE ainda não processou esta camada. Não será mostrado um mapa-base com legenda espectral.");
+            return;
+          }
           if (data && data.tile_url && mapInstanceRef.current) {
             geeTileRef.current = L.tileLayer(data.tile_url, {
               opacity: 0.75,
@@ -209,7 +210,10 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             }).addTo(mapInstanceRef.current);
           }
         })
-        .catch((err) => console.warn("GEE Tile fetch notice:", err));
+        .catch((err) => {
+          setGeeNotice("Camada GEE indisponível: " + (err?.message || "erro no processamento"));
+          console.warn("GEE Tile fetch notice:", err);
+        });
     }
   }, [activeGeeIndex, selectedDistrict]);
 
@@ -314,6 +318,15 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     const groups = layerGroupsRef.current;
     if (!map || !groups) return;
 
+    // National provincial limits from GeoMoz.
+    groups.provinces.clearLayers();
+    if (layersVisible.provinces && provincesGeoJson) {
+      L.geoJSON(provincesGeoJson, {
+        style: { color: "#064e3b", weight: 1.5, opacity: 0.8, fillOpacity: 0 },
+        interactive: false,
+      }).addTo(groups.provinces);
+    }
+
     // 1. Districts Layer
     groups.districts.clearLayers();
     if (layersVisible.districts && districtsGeoJson) {
@@ -330,7 +343,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           const isSelected = props.id === selectedDistrict;
 
           layer.bindTooltip(
-            `<strong>${props.name}</strong><br/><span style="font-size: 11px; color: #475569;">Bacia: ${props.basin}</span>`,
+            `<strong>${props.name}</strong><br/><span style="font-size: 11px; color: #475569;">${props.province} · GeoMoz 2017</span>`,
             { sticky: true, className: "text-xs font-sans" }
           );
 
@@ -367,7 +380,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         },
         onEachFeature: (feature, layer) => {
           const p = feature.properties || {};
-          layer.bindTooltip(`<strong>${p.name}</strong><br/>Vazão Média: ${p.discharge_avg_m3s} m³/s`, {
+          layer.bindTooltip(`<strong>${p.name}</strong><br/>Traçado ilustrativo (DEMO)`, {
             sticky: true,
           });
         },
@@ -475,6 +488,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     selectedDistrict,
     activeHazardLayer,
     districtsGeoJson,
+    provincesGeoJson,
+    riskAssessments,
     riversGeoJson,
     floodExtentGeoJson,
     infrastructureGeoJson,
@@ -571,6 +586,12 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           </select>
         </div>
 
+        {geeNotice && (
+          <div role="status" className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded p-2">
+            {geeNotice}
+          </div>
+        )}
+
         {/* AOI Drawing Tool Trigger */}
         <div className="border-t border-stone-200 pt-2">
           {!isDrawingAoi ? (
@@ -615,11 +636,21 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           <label className="flex items-center space-x-2 cursor-pointer text-stone-700 hover:text-stone-900">
             <input
               type="checkbox"
+              checked={layersVisible.provinces}
+              onChange={(e) => setLayersVisible({ ...layersVisible, provinces: e.target.checked })}
+              className="rounded text-emerald-700 focus:ring-emerald-500 w-3.5 h-3.5"
+            />
+            <span>Províncias de Moçambique (GeoMoz)</span>
+          </label>
+
+          <label className="flex items-center space-x-2 cursor-pointer text-stone-700 hover:text-stone-900">
+            <input
+              type="checkbox"
               checked={layersVisible.districts}
               onChange={(e) => setLayersVisible({ ...layersVisible, districts: e.target.checked })}
               className="rounded text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5"
             />
-            <span className="text-[11px]">Distritos Incomati</span>
+            <span className="text-[11px]">Distritos-piloto (GeoMoz)</span>
           </label>
 
           <label className="flex items-center space-x-2 cursor-pointer text-stone-700 hover:text-stone-900">
@@ -631,7 +662,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             />
             <span className="text-[11px] flex items-center space-x-1">
               <span className="w-2 h-0.5 bg-sky-600 inline-block"></span>
-              <span>Rede Hidrográfica</span>
+              <span>Rios ilustrativos (DEMO)</span>
             </span>
           </label>
 
@@ -644,7 +675,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             />
             <span className="text-[11px] flex items-center space-x-1">
               <span className="w-2 h-2 bg-sky-400/60 border border-sky-600 inline-block"></span>
-              <span>Mancha SAR (Cheia)</span>
+              <span>Cheia simulada (DEMO)</span>
             </span>
           </label>
 

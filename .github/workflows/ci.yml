@@ -1,0 +1,75 @@
+name: CLYMEX AI CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, "feat/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Python API & GeoMoz contract tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Compile Python source
+        run: python -m compileall -q backend
+      - name: Run isolated tests (no Earth Engine credentials required)
+        env:
+          PYTHONPATH: backend
+          GEE_PROJECT_ID: geoprocessamento-426809
+        run: python -m pytest backend/tests -q
+      - name: GeoMoz real dataset smoke test (remote, non-blocking)
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          PYTHONPATH: backend
+        run: |
+          python - <<'PY'
+          from app.services.administrative_boundaries import provinces_geojson, districts_geojson
+          provinces = provinces_geojson()
+          districts = districts_geojson()
+          pilots = districts_geojson(focus_only=True)
+          assert len(provinces["features"]) >= 10
+          assert len(districts["features"]) >= 100
+          assert all(f["geometry"] for f in pilots["features"])
+          assert not pilots["missing_focus_areas"], pilots["missing_focus_areas"]
+          print("GeoMoz provinces:", len(provinces["features"]))
+          print("GeoMoz districts:", len(districts["features"]))
+          print("GeoMoz pilot IDs:", [f["id"] for f in pilots["features"]])
+          print("Unmatched pilot IDs:", pilots.get("missing_focus_areas"))
+          print("Possible Matola matches:", [(x["id"], x["properties"]["name"], x["properties"]["province"]) for x in districts["features"] if "matol" in x["properties"]["name"].lower() or "matol" in x["id"].lower()])
+          PY
+
+  frontend:
+    name: Next.js TypeScript build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build application
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+        run: npm run build

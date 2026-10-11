@@ -62,6 +62,36 @@ Cada predição do CLYMEX AI responde obrigatoriamente a cinco perguntas:
 
 ---
 
+## 🗺️ Limites administrativos reais de Moçambique — GeoMoz
+
+O CLYMEX usa a biblioteca Python **[GeoMoz](https://github.com/geolithicamz-hub/geomoz)** para obter fronteiras administrativas de Moçambique, em vez de desenhar polígonos sintéticos como se fossem limites oficiais.
+
+```bash
+pip install geomoz
+```
+
+O pacote também está listado em `backend/requirements.txt` e é instalado pela imagem Docker do backend. No primeiro carregamento, o GeoMoz pode descarregar os conjuntos de dados de províncias e distritos do seu repositório externo e guardá-los em cache. A execução inicial exige conectividade com essa fonte (ou um cache previamente preparado).
+
+- `GET /api/v1/areas`: distritos-piloto cobertos pelo demonstrador, com geometrias GeoMoz.
+- `GET /api/v1/areas/provinces`: todas as províncias e a Cidade de Maputo.
+- `GET /api/v1/areas/districts`: todos os distritos GeoMoz.
+- `GET /api/v1/areas/districts?province=Gaza`: distritos da província indicada.
+- `GET /api/v1/areas/districts?focus_only=true`: só as geometrias-piloto.
+
+**Importante:** estes dados administrativos são uma referência cartográfica (base 2017). Não demonstram, por si só, a extensão actual de uma cheia. Se GeoMoz estiver indisponível, o endpoint devolve erro e não substitui as fronteiras por geometrias falsas.
+
+O mapa diferencia as camadas administrativas reais da hidrografia e das manchas de cheia **demonstrativas**. A opção meteorológica externa gera uma avaliação **ESTIMATED**, porque continua a combinar observações/modelos meteorológicos com parâmetros inferidos. As camadas de índices GEE só são desenhadas como resultados calculados quando o serviço entrega uma imagem efectivamente processada.
+
+### Integração real com Google Earth Engine
+
+Foi implementado processamento server-side de índices Sentinel-2, mudanças Sentinel-1 SAR, DEM Copernicus e precipitação CHIRPS, com recorte pelos polígonos GeoMoz, metadados de aquisição e erros explícitos quando indisponível. O algoritmo SAR é **exploratório**, e o motor de risco ainda não integra automaticamente estas métricas. Consulte [docs/GEE_PIPELINE.md](docs/GEE_PIPELINE.md) para a configuração, endpoints, limitações e validação científica pendente.
+
+### 929 Challenge 2026
+
+A estratégia de produto, discurso comercial, guião de demonstração e critérios de validação para o concurso encontram-se em [docs/929_CHALLENGE_2026.md](docs/929_CHALLENGE_2026.md). O estado actual é de **protótipo demonstrativo**, não serviço oficial de aviso antecipado.
+
+---
+
 ## 🚀 Como Executar o Projeto
 
 ### Pré-requisitos

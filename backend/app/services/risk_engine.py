@@ -283,7 +283,12 @@ class ClimateRiskEngine:
             area_name=area_name,
             province=province,
             country="Mozambique",
-            basin="Bacia Hidrográfica do Rio Incomati",
+            basin={
+                "chokwe": "Bacia Hidrográfica do Limpopo",
+                "boane": "Bacia Hidrográfica do Umbeluzi",
+                "matola": "Bacias urbanas da Matola",
+                "maputo_city": "Bacias costeiras de Maputo",
+            }.get(dist_key, "Bacia Hidrográfica do Rio Incomati"),
             hazard_type=hazard_type,
             hazard_score=target_hazard_score,
             exposure_score=exposure_score,
@@ -377,7 +382,12 @@ class ClimateRiskEngine:
             area_name=area_name,
             province=province,
             country="Mozambique",
-            basin="Bacia Hidrográfica do Rio Incomati",
+            basin={
+                "chokwe": "Bacia Hidrográfica do Limpopo",
+                "boane": "Bacia Hidrográfica do Umbeluzi",
+                "matola": "Bacias urbanas da Matola",
+                "maputo_city": "Bacias costeiras de Maputo",
+            }.get(dist_key, "Bacia Hidrográfica do Rio Incomati"),
             hazard_type=hazard_type,
             hazard_score=target_hazard_score,
             exposure_score=exposure_score,
@@ -390,7 +400,9 @@ class ClimateRiskEngine:
             exposure=exposure_breakdown,
             indicators=indicators,
             timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            data_mode=DataStatus.OBSERVED
+            # Open-Meteo meteorology is mixed with heuristic NDVI, water extent,
+            # terrain and exposure estimates. Never claim the full score is observed.
+            data_mode=DataStatus.ESTIMATED
         )
 
     @classmethod

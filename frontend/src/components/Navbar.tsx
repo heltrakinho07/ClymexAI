@@ -68,7 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 isLiveMode ? "bg-emerald-200 animate-ping" : "bg-amber-500"
               }`}
             ></span>
-            <span>{isLiveMode ? "DADOS REAIS: GEOPROCESSAMENTO VIVO (ECMWF)" : "CENÁRIO SIMULADO (CHEIA EXTREMA)"}</span>
+            <span>{isLiveMode ? "METEOROLOGIA EXTERNA + ESTIMATIVAS" : "CENÁRIO DEMONSTRATIVO · NÃO OPERACIONAL"}</span>
           </button>
 
           {onOpenGeeModal && (
@@ -78,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="Clique para configurar o Google Earth Engine e satélites"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>🛰️ GEE Ativo (geoprocessamento-426809)</span>
+              <span>🛰️ Configuração GEE (verificar ligação)</span>
             </button>
           )}
 

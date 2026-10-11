@@ -54,7 +54,7 @@ export default function Home() {
   const [selectedDistrict, setSelectedDistrict] = useState<string>("manhica");
   const [activeRole, setActiveRole] = useState<string>("ANALYST");
   const [isSitRepOpen, setIsSitRepOpen] = useState<boolean>(false);
-  const [isLiveMode, setIsLiveMode] = useState<boolean>(true);
+  const [isLiveMode, setIsLiveMode] = useState<boolean>(false);
   const [isGeeModalOpen, setIsGeeModalOpen] = useState<boolean>(false);
   const [isAoiModalOpen, setIsAoiModalOpen] = useState<boolean>(false);
   const [isIoTSimulatorOpen, setIsIoTSimulatorOpen] = useState<boolean>(false);
@@ -65,6 +65,7 @@ export default function Home() {
   const [currentAssessment, setCurrentAssessment] = useState<RiskAssessment | null>(null);
   const [allRisks, setAllRisks] = useState<RiskAssessment[]>([]);
   const [districtsGeoJson, setDistrictsGeoJson] = useState<any>(null);
+  const [provincesGeoJson, setProvincesGeoJson] = useState<any>(null);
   const [riversGeoJson, setRiversGeoJson] = useState<any>(null);
   const [floodExtentGeoJson, setFloodExtentGeoJson] = useState<any>(null);
   const [infrastructureGeoJson, setInfrastructureGeoJson] = useState<any>(null);
@@ -77,6 +78,10 @@ export default function Home() {
       // 1. Districts GeoJSON
       const dists = await fetchApi<any>("/areas", null);
       setDistrictsGeoJson(dists);
+
+      // GeoMoz province geometry across Mozambique
+      const provinces = await fetchApi<any>("/areas/provinces", null);
+      setProvincesGeoJson(provinces);
 
       // 2. Rivers GeoJSON
       const rivs = await fetchApi<any>("/areas/rivers", null);
@@ -98,12 +103,37 @@ export default function Home() {
       const alerts = await fetchApi<AlertRecord[]>("/alerts", []);
       setAlertsData(alerts);
 
-      // 7. All Risks
-      const risks = await fetchApi<RiskAssessment[]>("/risk", []);
-      setAllRisks(risks);
+
     }
     loadInitialData();
   }, []);
+
+  // Risk symbology must reflect current hazard and selected data provenance.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRisks() {
+      const hazard =
+        currentTab === "flood" ? "FLOOD" :
+        currentTab === "drought" ? "DROUGHT" :
+        currentTab === "water_stress" ? "WATER_STRESS" : "OVERALL_CLIMATE";
+      const mode = isLiveMode ? "live" : "demo";
+      const result = await fetchApi<RiskAssessment[]>(
+        `/risk?mode=${mode}&hazard=${hazard}`, []
+      );
+      if (!cancelled) setAllRisks(result);
+    }
+    loadRisks();
+    return () => { cancelled = true; };
+  }, [currentTab, isLiveMode]);
+
+  const meanRisk = allRisks.length
+    ? allRisks.reduce((total, item) => total + item.risk_score, 0) / allRisks.length
+    : null;
+  const exposedPopulation = allRisks.reduce((n, r) => n + r.exposure.population_exposed, 0);
+  const exposedBuildings = allRisks.reduce((n, r) => n + r.exposure.buildings_count, 0);
+  const meanTelemetryQuality = sensorsData.length
+    ? sensorsData.reduce((n, s) => n + s.data_quality_score, 0) / sensorsData.length
+    : null;
 
   const reloadSensors = async () => {
     const updated = await fetchApi<SensorTelemetry[]>("/sensors", []);
@@ -170,6 +200,17 @@ export default function Home() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {(!districtsGeoJson || !provincesGeoJson) && (
+          <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+            Limites administrativos GeoMoz indisponíveis. Verifique a ligação da API, a instalação do pacote e o acesso inicial aos dados. Não são utilizados polígonos artificiais como alternativa.
+          </div>
+        )}
+        {districtsGeoJson?.missing_focus_areas?.length > 0 && (
+          <div role="status" className="rounded-xl border border-stone-300 bg-white p-3 text-xs text-stone-700">
+            Distritos-piloto sem geometria correspondente no GeoMoz: {districtsGeoJson.missing_focus_areas.join(", ")}. Não serão desenhadas fronteiras inventadas.
+          </div>
+        )}
+
         {/* District & Context Filter Header */}
         <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -183,14 +224,14 @@ export default function Home() {
                 onChange={(e) => setSelectedDistrict(e.target.value)}
                 className="bg-stone-50 border border-stone-200 text-stone-900 font-bold text-xs rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-emerald-500"
               >
-                <option value="manhica">Manhiça (Risco Alto/Crítico - Cheia Vale do Incomati)</option>
-                <option value="marracuene">Marracuene (Risco Alto - Estuário do Incomati)</option>
-                <option value="matola">Matola (Risco Moderado - Bacia Urbana)</option>
-                <option value="boane">Boane (Risco Moderado - Umbeluzi / Albufeira)</option>
-                <option value="magude">Magude (Risco Alto - Seca no Alto Incomati)</option>
-                <option value="moamba">Moamba (Risco Moderado - Barragem de Corumana)</option>
-                <option value="maputo_city">Maputo Cidade (Risco Moderado - Drenagem Costeira)</option>
-                <option value="chokwe">Chókwè (Risco Crítico - Perímetro Irrigado Limpopo)</option>
+                <option value="manhica">Manhiça </option>
+                <option value="marracuene">Marracuene </option>
+                <option value="matola">Matola </option>
+                <option value="boane">Boane </option>
+                <option value="magude">Magude </option>
+                <option value="moamba">Moamba </option>
+                <option value="maputo_city">Maputo Cidade </option>
+                <option value="chokwe">Chókwè </option>
               </select>
             </div>
 
@@ -206,7 +247,7 @@ export default function Home() {
               className="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-xs transition-all"
             >
               <FileText className="w-4 h-4" />
-              <span>Gerar Boletim Oficial (SitRep)</span>
+              <span>Gerar SitRep (DEMO)</span>
             </button>
           </div>
         </div>
@@ -219,10 +260,10 @@ export default function Home() {
               <Waves className="w-4 h-4 text-emerald-700" />
             </div>
             <div className="text-2xl font-black text-stone-900 mt-1 font-mono">
-              64.2 <span className="text-xs font-normal text-stone-500">/ 100</span>
+              {meanRisk === null ? "—" : meanRisk.toFixed(1)} <span className="text-xs font-normal text-stone-500">/ 100</span>
             </div>
             <div className="text-[11px] font-semibold text-amber-700 mt-0.5">
-              Nível Geral: ALTO (Cheias Aluviais)
+              Índice médio dos oito distritos-piloto
             </div>
           </div>
 
@@ -232,10 +273,10 @@ export default function Home() {
               <Users className="w-4 h-4 text-sky-700" />
             </div>
             <div className="text-2xl font-black text-stone-900 mt-1 font-mono">
-              128,500 <span className="text-xs font-normal text-stone-500">hab</span>
+              {allRisks.length ? exposedPopulation.toLocaleString("pt-MZ") : "—"} <span className="text-xs font-normal text-stone-500">hab</span>
             </div>
             <div className="text-[11px] text-stone-500 mt-0.5">
-              Base: WorldPop Africa 100m
+              Estimativa demonstrativa de exposição
             </div>
           </div>
 
@@ -245,10 +286,10 @@ export default function Home() {
               <Building2 className="w-4 h-4 text-emerald-700" />
             </div>
             <div className="text-2xl font-black text-stone-900 mt-1 font-mono">
-              26,450
+              {allRisks.length ? exposedBuildings.toLocaleString("pt-MZ") : "—"}
             </div>
             <div className="text-[11px] text-stone-500 mt-0.5">
-              Google Open Buildings v3
+              Estimativa de exposição — não contabilização oficial
             </div>
           </div>
 
@@ -258,10 +299,10 @@ export default function Home() {
               <Radio className="w-4 h-4 text-emerald-600" />
             </div>
             <div className="text-2xl font-black text-emerald-700 mt-1 font-mono">
-              96.8%
+              {meanTelemetryQuality === null ? "—" : meanTelemetryQuality.toFixed(1) + "%"}
             </div>
             <div className="text-[11px] text-emerald-800 font-semibold mt-0.5">
-              7/7 Estações Ativas (ESP32)
+              {sensorsData.length} estações registadas (simulação IoT)
             </div>
           </div>
         </div>
@@ -292,7 +333,7 @@ export default function Home() {
               onClick={() => setIsSitRepOpen(true)}
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-lg text-xs shadow-xs"
             >
-              Abrir Boletim Oficial de {currentAssessment?.area_name || "Manhiça"}
+              Abrir SitRep DEMO de {currentAssessment?.area_name || "Manhiça"}
             </button>
           </div>
         ) : (
@@ -307,6 +348,8 @@ export default function Home() {
                     onSelectDistrict={setSelectedDistrict}
                     activeHazardLayer={getActiveHazardLayer()}
                     districtsGeoJson={districtsGeoJson}
+                    provincesGeoJson={provincesGeoJson}
+                    riskAssessments={allRisks}
                     riversGeoJson={riversGeoJson}
                     floodExtentGeoJson={floodExtentGeoJson}
                     infrastructureGeoJson={infrastructureGeoJson}
