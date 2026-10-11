@@ -19,15 +19,15 @@ export const AlertsList: React.FC<AlertsListProps> = ({ alerts, onSelectArea }) 
             <ShieldAlert className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-stone-900">Alertas Ativos & Alerta Antecipado (Early Warning)</h3>
+            <h3 className="text-sm font-bold text-stone-900">Cenários Simulados de Alerta</h3>
             <p className="text-[11px] text-stone-500">
-              Disparados por limites críticos de precipitação, saturação de solo e elevação de vazão fluvial
+              Simulação educativa com limiares definidos no motor. Não são alertas oficiais nem leituras actuais.
             </p>
           </div>
         </div>
 
         <span className="text-xs font-bold bg-red-100 text-red-800 px-2.5 py-1 rounded-full border border-red-200">
-          {alerts.length} {alerts.length === 1 ? "Alerta Ativo" : "Alertas Ativos"}
+          {alerts.length} {alerts.length === 1 ? "Alerta DEMO" : "Alertas DEMO"}
         </span>
       </div>
 
@@ -69,25 +69,25 @@ export const AlertsList: React.FC<AlertsListProps> = ({ alerts, onSelectArea }) 
 
               {/* Trigger Condition */}
               <div className="mt-2 text-xs text-stone-700 bg-white/80 p-2.5 rounded-lg border border-stone-200/80">
-                <strong className="text-stone-900">Gatilho do Alerta:</strong> {alert.trigger_condition}
+                <strong className="text-stone-900">Gatilho do Cenário:</strong> {alert.trigger_condition}
               </div>
 
               {/* Impact stats */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3 text-xs">
                 <div className="bg-white p-2 rounded border border-stone-200/60">
-                  <span className="text-[10px] text-stone-400 block uppercase">Área Afetada</span>
+                  <span className="text-[10px] text-stone-400 block uppercase">Área Estimada (DEMO)</span>
                   <strong className="text-stone-800 font-mono">{alert.affected_area_sqkm} km²</strong>
                 </div>
 
                 <div className="bg-white p-2 rounded border border-stone-200/60">
-                  <span className="text-[10px] text-stone-400 block uppercase">População em Risco</span>
+                  <span className="text-[10px] text-stone-400 block uppercase">População Estimada</span>
                   <strong className="text-stone-800 font-mono">
                     {alert.estimated_population_exposed.toLocaleString()} hab
                   </strong>
                 </div>
 
                 <div className="bg-white p-2 rounded border border-stone-200/60">
-                  <span className="text-[10px] text-stone-400 block uppercase">Confiança</span>
+                  <span className="text-[10px] text-stone-400 block uppercase">Confiança heurística</span>
                   <strong className="text-emerald-700 font-mono">{alert.confidence_pct}%</strong>
                 </div>
               </div>
