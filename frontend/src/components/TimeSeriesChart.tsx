@@ -1,183 +1,121 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  Area,
-  ComposedChart,
-} from "recharts";
-import { fetchApi } from "../lib/api";
-import { LineChart as ChartIcon, Calendar } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart as ChartIcon, AlertTriangle } from "lucide-react";
+import { API_BASE_URL } from "../lib/api";
 
-interface TimeSeriesChartProps {
-  selectedDistrict: string;
-}
+interface Props { selectedDistrict: string }
+type Daily = { date: string; actual: number; baseline: null; anomaly_pct: null };
+type Series = {
+  dataset: string;
+  data_mode: string;
+  unit: string;
+  last_observation: string | null;
+  period: { start: string; end_exclusive: string };
+  climatological_baseline: string;
+  points: Daily[];
+};
 
-export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ selectedDistrict }) => {
-  const [indicator, setIndicator] = useState<string>("rainfall");
-  const [temporalRange, setTemporalRange] = useState<string>("30d");
-  const [data, setData] = useState<any[]>([]);
+export const TimeSeriesChart: React.FC<Props> = ({ selectedDistrict }) => {
+  const [days, setDays] = useState<number>(30);
+  const [series, setSeries] = useState<Series | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      const fallback = [
-        { date: "2026-09-01", actual: 2.1, baseline: 2.5, anomaly_pct: -16.0 },
-        { date: "2026-09-05", actual: 5.4, baseline: 3.1, anomaly_pct: 74.0 },
-        { date: "2026-09-10", actual: 14.8, baseline: 2.8, anomaly_pct: 428.0 },
-        { date: "2026-09-14", actual: 22.0, baseline: 3.0, anomaly_pct: 633.0 },
-        { date: "2026-09-15", actual: 58.4, baseline: 3.2, anomaly_pct: 1725.0 },
-        { date: "2026-09-16", actual: 76.2, baseline: 3.1, anomaly_pct: 2358.0 },
-        { date: "2026-09-17", actual: 64.5, baseline: 3.4, anomaly_pct: 1797.0 },
-      ];
-
-      const res = await fetchApi<any[]>(
-        `/weather/timeseries?indicator=${indicator}&district=${selectedDistrict}`,
-        fallback
-      );
-      setData(res);
-      setLoading(false);
-    }
-    loadData();
-  }, [indicator, selectedDistrict]);
-
-  const getIndicatorUnit = () => {
-    switch (indicator) {
-      case "rainfall":
-        return "mm";
-      case "ndvi":
-        return "Índice (-1 a 1)";
-      case "soil_moisture":
-        return "%";
-      case "river_stage":
-        return "m";
-      default:
-        return "";
-    }
-  };
+    const controller = new AbortController();
+    setLoading(true);
+    setSeries(null);
+    setError(null);
+    fetch(
+      API_BASE_URL + "/satellite/gee/precipitation-series/" +
+      encodeURIComponent(selectedDistrict) + "?days=" + days,
+      { signal: controller.signal }
+    )
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.detail || "CHIRPS indisponível (HTTP " + res.status + ")");
+        }
+        return res.json();
+      })
+      .then((data: Series) => setSeries(data))
+      .catch((err: Error) => {
+        if (err.name !== "AbortError") setError(err.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [selectedDistrict, days]);
 
   return (
-    <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-sm space-y-4">
-      {/* Header & Filter Controls */}
+    <section className="bg-white p-5 rounded-xl border border-stone-200 shadow-sm space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 pb-3">
-        <div className="flex items-center space-x-2">
-          <div className="w-7 h-7 rounded-md bg-emerald-50 text-emerald-700 flex items-center justify-center">
-            <ChartIcon className="w-4 h-4" />
-          </div>
+        <div className="flex items-center gap-2">
+          <ChartIcon className="w-5 h-5 text-emerald-700" />
           <div>
-            <h3 className="text-sm font-bold text-stone-900">Séries Temporais & Anomalias Hidroclimáticas</h3>
-            <p className="text-[11px] text-stone-500">
-              Comparação do valor observado contra o baseline histórico (10-20 anos)
+            <h3 className="text-sm font-bold text-stone-900">Precipitação histórica · CHIRPS</h3>
+            <p className="text-[11px] text-stone-600">
+              Últimos dias com dados publicados, não previsão meteorológica nem observação horária
             </p>
           </div>
         </div>
-
-        <div className="flex items-center space-x-2">
-          {/* Indicator Select */}
-          <select
-            value={indicator}
-            onChange={(e) => setIndicator(e.target.value)}
-            className="bg-stone-50 border border-stone-200 text-stone-800 text-xs rounded-lg px-2.5 py-1.5 font-medium focus:ring-1 focus:ring-emerald-500"
-          >
-            <option value="rainfall">Precipitação (CHIRPS/ERA5)</option>
-            <option value="ndvi">Vigor Vegetativo NDVI (Sentinel-2)</option>
-            <option value="soil_moisture">Umidade do Solo (ERA5-Land)</option>
-            <option value="river_stage">Nível do Rio Incomati (m)</option>
-          </select>
-
-          {/* Temporal Scale Buttons */}
-          <div className="flex items-center space-x-1 bg-stone-100 p-0.5 rounded-lg border border-stone-200 text-xs">
-            {["7d", "30d", "90d", "1y"].map((scale) => (
-              <button
-                key={scale}
-                onClick={() => setTemporalRange(scale)}
-                className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${
-                  temporalRange === scale
-                    ? "bg-white text-emerald-800 shadow-xs"
-                    : "text-stone-600 hover:text-stone-900"
-                }`}
-              >
-                {scale}
-              </button>
-            ))}
-          </div>
+        <div className="flex gap-1 bg-stone-100 p-1 rounded-lg">
+          {[7, 30, 90, 180].map((range) => (
+            <button
+              key={range}
+              onClick={() => setDays(range)}
+              aria-pressed={days === range}
+              className={
+                "px-2.5 py-1.5 rounded-md text-xs font-semibold " +
+                (days === range ? "bg-white shadow-sm text-emerald-800" : "text-stone-600")
+              }
+            >
+              {range}d
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Chart Area */}
-      <div className="w-full h-64 pt-2">
-        {loading ? (
-          <div className="w-full h-full flex items-center justify-center text-xs text-stone-400">
-            Carregando séries temporais...
+      {loading && (
+        <div className="h-60 flex items-center justify-center text-xs text-stone-500">
+          A consultar séries históricas no Earth Engine…
+        </div>
+      )}
+      {error && (
+        <div role="alert" className="min-h-32 p-4 flex flex-col justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-xs">
+          <div className="font-bold flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Série CHIRPS indisponível</div>
+          <p>{error}</p>
+          <p>Não é utilizada qualquer série demonstrativa como substituição silenciosa.</p>
+        </div>
+      )}
+      {!loading && series && (
+        <>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={series.points} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />
+                <XAxis dataKey="date" fontSize={10} tickFormatter={(value: string) => value.slice(5)} />
+                <YAxis fontSize={10} unit="mm" />
+                <Tooltip
+                  formatter={(value: number) => [value + " mm", "CHIRPS diário"]}
+                  labelFormatter={(label: string) => "Data: " + label}
+                />
+                <Line type="monotone" dataKey="actual" stroke="#0284c7" strokeWidth={2} dot={false} connectNulls={false} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis
-                dataKey="date"
-                stroke="#94a3b8"
-                fontSize={10}
-                tickFormatter={(val) => val.slice(5)}
-                tickLine={false}
-              />
-              <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} unit={getIndicatorUnit()} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#ffffff",
-                  borderColor: "#e2e8f0",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-                }}
-                formatter={(value: any, name: any) => [
-                  `${value} ${getIndicatorUnit()}`,
-                  name === "actual" ? "Valor Observado" : "Baseline Histórico",
-                ]}
-                labelFormatter={(label) => `Data: ${label}`}
-              />
-              <Legend
-                verticalAlign="top"
-                align="right"
-                wrapperStyle={{ fontSize: "11px", paddingBottom: "10px" }}
-              />
-              {/* Baseline Area */}
-              <Area
-                type="monotone"
-                dataKey="baseline"
-                name="Baseline Climatológico"
-                fill="#ecfdf5"
-                stroke="#10b981"
-                strokeDasharray="4 4"
-                strokeWidth={1.5}
-              />
-              {/* Observed Line */}
-              <Line
-                type="monotone"
-                dataKey="actual"
-                name="Observado / Estimado"
-                stroke="#0284c7"
-                strokeWidth={2.5}
-                dot={{ r: 2.5, fill: "#0284c7" }}
-                activeDot={{ r: 5 }}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between text-[11px] text-stone-500 pt-2 border-t border-stone-100">
-        <span>Fonte: ECMWF ERA5-Land & CHIRPS v2.0 calibrado</span>
-        <span className="text-emerald-700 font-semibold">*Linha tracejada verde representa a normal de 20 anos</span>
-      </div>
-    </div>
+          <p className="text-xs text-stone-600">
+            Última observação disponível: <strong>{series.last_observation ?? "não informada"}</strong>.
+            As anomalias climatológicas ainda não foram calculadas; não é apresentada uma normal histórica inventada.
+          </p>
+          <p className="text-[10px] text-stone-500 border-t border-stone-100 pt-2">
+            Fonte: {series.dataset} · {series.data_mode} · {series.unit} · média espacial do distrito GeoMoz.
+          </p>
+        </>
+      )}
+    </section>
   );
 };
