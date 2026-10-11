@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.models.domain import DataProvenance
 from app.data.historical_records import DATA_PROVENANCE_CATALOG
 from app.services.gee_service import GoogleEarthEngineBridge
+from app.config import settings
 
 router = APIRouter(prefix="/satellite", tags=["Satellite Earth Observation"])
 
@@ -46,10 +47,11 @@ def configure_gee(req: GEEConfigureRequest):
     """
     Updates Google Earth Engine project ID or Service Account key dynamically.
     """
-    return GoogleEarthEngineBridge.configure(
-        project_id=req.project_id,
-        sa_key=req.service_account_key
-    )
+    if req.service_account_key:
+        raise HTTPException(status_code=400, detail="Nunca envie chaves de conta de serviço pelo navegador.")
+    if settings.ENV != "development":
+        raise HTTPException(status_code=403, detail="A configuração GEE está desactivada fora do desenvolvimento.")
+    return GoogleEarthEngineBridge.configure(project_id=req.project_id)
 
 
 @router.post("/gee/tile", response_model=Dict[str, Any])
