@@ -83,11 +83,11 @@ class GoogleEarthEngineBridge:
             cls.initialize()
 
         return {
-            "connected": True,
+            "connected": cls._auth_type in ("service_account", "oauth2") and cls._last_error is None,
             "project_id": cls._project_id,
             "auth_type": cls._auth_type,
-            "message": f"Google Earth Engine vinculado ao projeto: {cls._project_id}",
-            "status": "OPERATIONAL",
+            "message": ("Earth Engine autenticado." if cls._auth_type in ("service_account", "oauth2") else "Project ID configurado, mas Earth Engine não autenticado."),
+            "status": "AUTHENTICATED" if cls._auth_type in ("service_account", "oauth2") and cls._last_error is None else "UNCONFIGURED",
             "indices": list(INDEX_REGISTRY.keys()),
             "index_catalog": INDEX_REGISTRY
         }
@@ -123,43 +123,46 @@ class GoogleEarthEngineBridge:
         # Determine best real satellite tile URL template based on index
         tile_url = ""
         attribution = ""
+        is_processed_layer = False
 
         if index == "ndvi":
             # Sentinel-2 False Color Infrared / Vegetation Vigor WMTS
             tile_url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            attribution = "Copernicus Sentinel-2 (10m) | ESA / Google Earth Engine"
+            attribution = "Esri World Imagery — mapa-base; NDVI não calculado"
         elif index in ["ndwi", "mndwi"]:
             # Water Bodies & Inundation
-            tile_url = "https://tilecache.rainviewer.com/v2/radar/nowcast_latest/256/{z}/{x}/{y}/2/1_1.png"
-            attribution = "Copernicus Sentinel-2 NDWI & RainViewer Live Radar"
+            tile_url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            attribution = "Esri World Imagery — mapa-base; índice de água não calculado"
         elif index == "flood_sar":
             # Sentinel-1 SAR Radar Inundation
             tile_url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            attribution = "Sentinel-1 C-SAR GRD (10m) | ESA / Google Earth Engine"
+            attribution = "Esri World Imagery — mapa-base; extensão SAR não calculada"
         elif index in ["elevation", "slope"]:
             # Copernicus GLO-30 DEM
             tile_url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
-            attribution = "Copernicus DEM GLO-30m | ESA / GEE"
+            attribution = "Esri World Topographic Map — mapa-base; DEM não calculado"
         elif index == "precipitation":
             # Real-time Radar & CHIRPS
             tile_url = "https://tilecache.rainviewer.com/v2/radar/nowcast_latest/256/{z}/{x}/{y}/2/1_1.png"
-            attribution = "CHIRPS Daily 0.05° & RainViewer Live Radar"
+            attribution = "RainViewer radar — não é a série CHIRPS"
         else:
             tile_url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            attribution = "Google Earth Engine Planetary Catalog"
+            attribution = "Esri World Imagery — mapa-base não processado"
 
         # Try server-side ee.Image computation if full credentials are valid
         try:
             import ee
             if cls._auth_type == "service_account":
                 # Compute real ee.Image
-                if cfg["group"] == "spectral":
+                if index == "ndvi":
                     col = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED").filterDate(start_date, end_date)
                     s2 = col.median()
                     idx_img = s2.normalizedDifference(["B8", "B4"]).rename("ndvi")
                     vis = idx_img.visualize(**cfg["vis"])
                     map_id = vis.getMapId()
                     tile_url = map_id["tile_fetcher"].url_format
+                    attribution = "Sentinel-2 NDVI via Google Earth Engine; janela de aquisição solicitada"
+                    is_processed_layer = True
         except Exception:
             pass
 
@@ -174,7 +177,9 @@ class GoogleEarthEngineBridge:
             "tile_url": tile_url,
             "attribution": attribution,
             "project_id": cls._project_id,
-            "data_source": "Google Earth Engine (GEE) & Copernicus",
+            "data_source": "Earth Engine / Sentinel-2" if is_processed_layer else "Fallback: cartografia pública de referência",
+            "is_processed_layer": is_processed_layer,
+            "data_mode": "OBSERVED" if is_processed_layer else "BASEMAP_ONLY",
             "resolution": "10 metros" if cfg["group"] in ["spectral", "radar"] else "30 metros"
         }
 
@@ -270,4 +275,7 @@ class GoogleEarthEngineBridge:
             }
         }
 
-        return metrics_db.get(district_id.lower(), metrics_db["manhica"])
+        item = dict(metrics_db.get(district_id.lower(), metrics_db["manhica"]))
+        item["data_mode"] = "DEMO"
+        item["data_source"] = "CLYMEX AI: indicadores ilustrativos de 2024, não extraídos em tempo real"
+        return item
